@@ -94,9 +94,9 @@ export default function ReportForm() {
         createdAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'reports'), reportData);
+      const reportRef = await addDoc(collection(db, 'reports'), reportData);
 
-      setLastReport({ ...reportData, id: 'recent' });
+      setLastReport({ ...reportData, id: reportRef.id });
       setSubmitted(true);
       setFormData({ title: '', type: 'trash', description: '', locationName: '' });
       setFile(null);
@@ -108,6 +108,26 @@ export default function ReportForm() {
       setIsSubmitting(false);
     }
   };
+
+  const handleMarkCleaned = async () => {
+    if (!lastReport?.id) return;
+    setIsSubmitting(true);
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'reports', lastReport.id), {
+        status: 'cleaned'
+      });
+      setSubmitted(false);
+      alert('Đã cập nhật trạng thái: Đã dọn dẹp!');
+    } catch (err) {
+      console.error(err);
+      setError('Không thể cập nhật trạng thái.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isAdmin = auth.currentUser?.email === 'imcyanite123@gmail.com';
 
   return (
     <section id="report" className="py-20 px-6">

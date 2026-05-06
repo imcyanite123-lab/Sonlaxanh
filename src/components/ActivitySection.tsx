@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, MapPin, Users, ArrowRight, Plus, Edit2, X, Image as ImageIcon, Save, Trash2, Loader2 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { Calendar, MapPin, Users, ArrowRight, Plus, Edit2, X, Image as ImageIcon, Save, Trash2, Loader2, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage } from '../lib/firebase';
 
 const ADMIN_EMAIL = 'imcyanite123@gmail.com';
 
@@ -11,6 +12,16 @@ export default function ActivitySection() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Undo Delete State
+  const [deletedActivity, setDeletedActivity] = useState<any>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimerRef = useRef<any>(null);
+
   const user = auth.currentUser;
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -23,31 +34,47 @@ export default function ActivitySection() {
     return () => unsubscribe();
   }, []);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     
-    const data = {
-      title: formData.get('title'),
-      date: formData.get('date'),
-      location: formData.get('location'),
-      participants: parseInt(formData.get('participants') as string),
-      image: formData.get('image'),
-      category: formData.get('category'),
-      updatedAt: serverTimestamp(),
-      createdAt: editingActivity?.createdAt || serverTimestamp()
-    };
-
     setLoading(true);
     try {
+      let imageUrl = editingActivity?.image || '';
+
+      if (selectedFile) {
+        const storageRef = ref(storage, `activities/${Date.now()}_${selectedFile.name}`);
+        const snapshot = await uploadBytes(storageRef, selectedFile);
+        imageUrl = await getDownloadURL(snapshot.ref);
+      }
+      
+      const data = {
+        title: formData.get('title'),
+        date: formData.get('date'),
+        location: formData.get('location'),
+        participants: parseInt(formData.get('participants') as string),
+        image: imageUrl,
+        category: formData.get('category'),
+        updatedAt: serverTimestamp(),
+        createdAt: editingActivity?.createdAt || serverTimestamp()
+      };
+
       if (editingActivity?.id) {
         await updateDoc(doc(db, 'activities', editingActivity.id), data);
       } else {
         await addDoc(collection(db, 'activities'), data);
       }
-      setIsEditorOpen(false);
-      setEditingActivity(null);
+      
+      closeEditor();
     } catch (err) {
       console.error(err);
       alert('Có lỗi xảy ra khi lưu hoạt động.');
@@ -56,10 +83,40 @@ export default function ActivitySection() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động này?')) return;
+  const closeEditor = () => {
+    setIsEditorOpen(false);
+    setEditingActivity(null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setUploadProgress(0);
+  };
+
+  const handleDelete = async (activity: any) => {
     try {
-      await deleteDoc(doc(db, 'activities', id));
+      // Immediate deletion from DB for better UX consistency
+      await deleteDoc(doc(db, 'activities', activity.id));
+      
+      // Store copy for undo
+      setDeletedActivity(activity);
+      setShowUndo(true);
+
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => {
+        setShowUndo(false);
+      }, 5000);
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!deletedActivity) return;
+    try {
+      const { id, ...data } = deletedActivity;
+      await addDoc(collection(db, 'activities'), data);
+      setShowUndo(false);
+      setDeletedActivity(null);
     } catch (err) {
       console.error(err);
     }
@@ -126,7 +183,7 @@ export default function ActivitySection() {
                           <Edit2 size={16} />
                         </button>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(activity.id); }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(activity); }}
                           className="w-10 h-10 bg-red-500/20 backdrop-blur-md text-red-200 rounded-full flex items-center justify-center hover:bg-red-500/40 transition-colors"
                         >
                           <Trash2 size={16} />
@@ -215,22 +272,78 @@ export default function ActivitySection() {
                     <input name="participants" type="number" defaultValue={editingActivity?.participants} className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-brand-primary font-medium" required />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">URL Hình ảnh</label>
-                    <input name="image" defaultValue={editingActivity?.image} placeholder="https://..." className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:border-brand-primary font-medium" required />
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Hình ảnh hoạt động</label>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden" 
+                      accept="image/*" 
+                    />
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="relative h-40 w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary overflow-hidden group"
+                    >
+                      {(previewUrl || editingActivity?.image) ? (
+                        <>
+                          <img src={previewUrl || editingActivity.image} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" alt="Preview" />
+                          <ImageIcon className="relative z-10 text-brand-dark mb-1" size={32} />
+                          <span className="relative z-10 text-[10px] font-bold text-brand-dark uppercase">Nhấn để thay đổi ảnh</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="text-slate-300 mb-2" size={40} />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Tải ảnh lên</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full py-5 bg-brand-primary text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-brand-dark transition-all shadow-xl shadow-brand-primary/20 disabled:bg-slate-300 active:scale-[0.98]"
-                >
-                  {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                  LƯU THÔNG TIN
-                </button>
+                <div className="flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={closeEditor}
+                    className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-[0.98]"
+                  >
+                    HỦY
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="flex-[2] py-5 bg-brand-primary text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-brand-dark transition-all shadow-xl shadow-brand-primary/20 disabled:bg-slate-300 active:scale-[0.98]"
+                  >
+                    {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                    LƯU THÔNG TIN
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Undo Toast */}
+      <AnimatePresence>
+        {showUndo && (
+          <motion.div 
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[101] bg-slate-900 text-white px-8 py-5 rounded-[2rem] shadow-2xl flex items-center gap-6 min-w-[320px]"
+          >
+            <div className="flex-1">
+              <p className="text-sm font-bold italic tracking-tighter">Đã xóa: {deletedActivity?.title}</p>
+              <p className="text-[10px] text-slate-400 font-medium">Bấm hoàn tác để khôi phục trong 5s</p>
+            </div>
+            <button 
+              onClick={handleUndo}
+              className="flex items-center gap-2 px-6 py-2 bg-brand-primary text-white rounded-xl font-bold text-xs hover:bg-brand-dark transition-colors"
+            >
+              <RotateCcw size={14} />
+              HOÀN TÁC
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </section>
