@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { CollectionPoint, TrashReport } from '../types';
-import { MapPin, Info, Recycle, Search, X, Filter, Share2, Check, Navigation, Trash, AlertTriangle, Layers } from 'lucide-react';
+import { MapPin, Info, Recycle, Search, X, Filter, Share2, Check, Navigation, Trash, AlertTriangle, Layers, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // For leaflet icons in Vite
@@ -80,6 +80,8 @@ export default function MapSection() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const listRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
+  const [selectedReport, setSelectedReport] = useState<TrashReport | null>(null);
+
   useEffect(() => {
     // Geolocation on load
     if (navigator.geolocation) {
@@ -121,7 +123,7 @@ export default function MapSection() {
     return points.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             p.address.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = selectedType === 'Tất cả' || p.type.toLowerCase().includes(selectedType.toLowerCase());
+      const matchesType = selectedType === 'Tất cả' || p.type.toLowerCase().indexOf(selectedType.toLowerCase()) !== -1;
       return matchesSearch && matchesType;
     });
   }, [points, searchQuery, selectedType]);
@@ -130,8 +132,8 @@ export default function MapSection() {
     return reports.filter(r => {
       const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             r.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = selectedType === 'Tất cả' || r.type.toLowerCase().includes(selectedType.toLowerCase());
-      const matchesStatus = selectedStatus === 'Tất cả' || r.status === selectedStatus;
+      const matchesType = selectedType === 'Tất cả' || r.type.toLowerCase().indexOf(selectedType.toLowerCase()) !== -1;
+      const matchesStatus = selectedStatus === 'Tất cả' || r.status.toLowerCase() === selectedStatus.toLowerCase();
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [reports, searchQuery, selectedType, selectedStatus]);
@@ -407,6 +409,12 @@ export default function MapSection() {
                            {copiedId === report.id ? <Check size={14} /> : <Share2 size={14} />}
                            {copiedId === report.id ? 'Đã sao chép' : 'Chia sẻ'}
                          </button>
+                         <button 
+                          onClick={() => setSelectedReport(report)}
+                          className="flex-1 py-2 bg-brand-primary text-white rounded-lg text-[10px] uppercase font-bold tracking-wider hover:bg-brand-dark transition-colors"
+                        >
+                           Xem chi tiết
+                         </button>
                       </div>
                     </div>
                   </Popup>
@@ -416,6 +424,111 @@ export default function MapSection() {
           </div>
         </div>
       </div>
+
+      {/* Report Detail Modal */}
+      <AnimatePresence>
+        {selectedReport && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 sm:p-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedReport(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
+            >
+              <button 
+                onClick={() => setSelectedReport(null)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-white/40 transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="md:w-1/2 aspect-square md:aspect-auto relative bg-slate-100">
+                {selectedReport.imageUrl ? (
+                  <img src={selectedReport.imageUrl} className="w-full h-full object-cover" alt={selectedReport.title} />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                    <ImageIcon size={64} />
+                    <span className="text-sm font-medium">Không có hình ảnh</span>
+                  </div>
+                )}
+                <div className="absolute bottom-6 left-6 flex items-center gap-2">
+                  <span className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl ${
+                    selectedReport.priority === 'high' ? 'bg-red-600 text-white' : 'bg-brand-primary text-white'
+                  }`}>
+                    Priority: {selectedReport.priority}
+                  </span>
+                </div>
+              </div>
+
+              <div className="md:w-1/2 p-8 md:p-12 overflow-y-auto">
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 bg-brand-accent/20 text-brand-dark rounded text-[9px] font-bold uppercase tracking-wider">
+                      {selectedReport.type}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                      selectedReport.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                      selectedReport.status === 'verified' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {selectedReport.status}
+                    </span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight italic tracking-tighter uppercase mb-4">
+                    {selectedReport.title}
+                  </h2>
+                  <div className="flex items-center gap-2 text-slate-500 font-medium text-sm">
+                    <MapPin size={16} className="text-brand-primary" />
+                    {selectedReport.locationName}
+                  </div>
+                </div>
+
+                <div className="space-y-6 mb-10">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 italic">Mô tả chi tiết</h4>
+                    <p className="text-slate-600 leading-relaxed font-medium">{selectedReport.description}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Người báo cáo</h4>
+                      <p className="text-sm font-bold text-brand-dark truncate">{selectedReport.reporterName || 'Cộng tác viên'}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Thời gian</h4>
+                      <p className="text-sm font-bold text-brand-dark">
+                        {selectedReport.createdAt ? (selectedReport.createdAt as any).toDate?.().toLocaleDateString('vi-VN') : 'Mới đây'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedReport.lat},${selectedReport.lng}`, '_blank')}
+                    className="flex-1 py-4 bg-brand-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-brand-dark transition-all shadow-xl shadow-brand-primary/20 active:scale-95"
+                  >
+                    <Navigation size={18} />
+                    CHỈ ĐƯỜNG
+                  </button>
+                  <button 
+                    onClick={() => handleShare(selectedReport)}
+                    className="w-14 h-14 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95"
+                  >
+                    <Share2 size={20} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -1,10 +1,28 @@
 import React, { useState, useRef } from 'react';
 import { db, auth, storage } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { GoogleGenAI, Type } from "@google/genai";
-import { Camera, Send, MapPin, AlertCircle, CheckCircle2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Camera, Send, MapPin, AlertCircle, CheckCircle2, Image as ImageIcon, Loader2, Sparkles, Navigation, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix leaflet icon
+const markerIcon = new L.Icon({
+  iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+  iconSize: [32, 32]
+});
+
+function LocationPicker({ onLocationSelect, position }: { onLocationSelect: (pos: [number, number]) => void, position: [number, number] }) {
+  useMapEvents({
+    click(e) {
+      onLocationSelect([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position} icon={markerIcon} /> : null;
+}
 
 export default function ReportForm() {
   const [formData, setFormData] = useState({
@@ -16,12 +34,15 @@ export default function ReportForm() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [lastReport, setLastReport] = useState<any>(null);
+  const [reportPos, setReportPos] = useState<[number, number]>([21.3283, 103.9142]);
+  const [showMap, setShowMap] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -37,7 +58,7 @@ export default function ReportForm() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Analyze this trash report description and determine if it involves hazardous waste (chemicals, medical waste, batteries, sharp objects, etc.). 
+        contents: `Analyze this trash report description and determine if it involves hazardous waste (chemicals, medical waste, batteries, sharp objects, explosives, toxins). 
         Return "high" if hazardous, otherwise "low".
         Description: ${description}`,
         config: {
@@ -56,6 +77,38 @@ export default function ReportForm() {
     } catch (err) {
       console.error("AI Analysis failed:", err);
       return 'low';
+    }
+  };
+
+  const manualAnalyze = async () => {
+    if (!lastReport?.id) return;
+    setIsAnalyzing(true);
+    try {
+      const priority = await analyzeDescription(lastReport.description);
+      await updateDoc(doc(db, 'reports', lastReport.id), { priority });
+      setLastReport({ ...lastReport, priority });
+      alert(priority === 'high' ? 'AI đã phát hiện vật liệu nguy hiểm! Mức độ ưu tiên được nâng cao.' : 'AI không phát hiện vật liệu nguy hiểm.');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const updateLocation = async () => {
+    if (!lastReport?.id) return;
+    setIsSubmitting(true);
+    try {
+      await updateDoc(doc(db, 'reports', lastReport.id), {
+        lat: reportPos[0],
+        lng: reportPos[1]
+      });
+      setShowMap(false);
+      alert('Vị trí đã được cập nhật!');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,8 +142,8 @@ export default function ReportForm() {
         reporterId: auth.currentUser.uid,
         reporterName: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Người dùng ẩn danh',
         status: 'pending',
-        lat: 21.3283 + (Math.random() - 0.5) * 0.01,
-        lng: 103.9142 + (Math.random() - 0.5) * 0.01,
+        lat: reportPos[0],
+        lng: reportPos[1],
         createdAt: serverTimestamp()
       };
 
@@ -113,7 +166,6 @@ export default function ReportForm() {
     if (!lastReport?.id) return;
     setIsSubmitting(true);
     try {
-      const { doc, updateDoc } = await import('firebase/firestore');
       await updateDoc(doc(db, 'reports', lastReport.id), {
         status: 'cleaned'
       });
@@ -138,7 +190,7 @@ export default function ReportForm() {
               <AlertCircle size={14} />
               Báo cáo rác thải
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold font-display text-slate-900 mb-6 leading-tight">
+            <h2 className="text-4xl md:text-5xl font-extrabold font-display text-brand-dark mb-6 leading-tight">
               Thấy điểm rác? <br />
               Hãy báo cho chúng tôi!
             </h2>
@@ -172,30 +224,79 @@ export default function ReportForm() {
                    initial={{ opacity: 0, scale: 0.9 }}
                    animate={{ opacity: 1, scale: 1 }}
                    exit={{ opacity: 0, scale: 0.9 }}
-                   className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 px-8 text-center"
+                   className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 px-8 text-center"
                 >
-                  <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle2 size={48} />
+                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle2 size={32} />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Gửi báo cáo thành công!</h3>
-                  <div className="bg-slate-50 p-6 rounded-2xl mb-6 w-full text-left border border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Chi tiết báo cáo</p>
-                    <p className="font-bold text-slate-800 mb-1">{lastReport?.title}</p>
-                    <p className="text-sm text-slate-500 mb-2">{lastReport?.locationName}</p>
-                    <div className="flex items-center gap-2">
-                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${lastReport?.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                        Mức độ: {lastReport?.priority === 'high' ? 'Ưu tiên cao' : 'Thường'}
-                       </span>
+                  <h3 className="text-xl font-bold text-slate-900 mb-4">Hoàn tất báo cáo!</h3>
+                  
+                  <div className="w-full space-y-3 mb-6">
+                    <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100">
+                      <p className="font-bold text-slate-800 text-sm mb-1">{lastReport?.title}</p>
+                      <div className="flex items-center gap-2">
+                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${lastReport?.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                          Mức độ: {lastReport?.priority === 'high' ? 'Ưu tiên cao' : 'Thường'}
+                         </span>
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => setShowMap(!showMap)}
+                        className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-brand-dark rounded-xl text-xs font-bold hover:bg-slate-50"
+                      >
+                        <MapPin size={14} />
+                        CẬP NHẬT VỊ TRÍ
+                      </button>
+                      <button 
+                        onClick={manualAnalyze}
+                        disabled={isAnalyzing}
+                        className="flex items-center justify-center gap-2 py-3 bg-brand-accent/20 text-brand-dark rounded-xl text-xs font-bold hover:bg-brand-accent/30"
+                      >
+                        {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        PHÂN TÍCH AI
+                      </button>
+                    </div>
+
+                    {isAdmin && (
+                      <button 
+                        onClick={handleMarkCleaned}
+                        className="w-full py-3 bg-brand-dark text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={14} />
+                        ĐÃ DỌN DẸP (ADMIN)
+                      </button>
+                    )}
                   </div>
-                  <p className="text-slate-600 mb-8 max-w-xs text-sm">
-                    Dự kiến đội ngũ sẽ xác minh trong vòng <strong>24-48 giờ</strong> tới. Bạn có thể theo dõi trạng thái tại Trang Cá Nhân.
-                  </p>
+
+                  <AnimatePresence>
+                    {showMap && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 280, opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="w-full rounded-2xl overflow-hidden mb-4 relative"
+                      >
+                        <MapContainer center={reportPos} zoom={15} style={{ height: '100%', width: '100%' }}>
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          <LocationPicker position={reportPos} onLocationSelect={(pos) => setReportPos(pos)} />
+                        </MapContainer>
+                        <button 
+                          onClick={updateLocation}
+                          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] px-6 py-2 bg-brand-primary text-white rounded-full font-bold text-[10px] shadow-xl"
+                        >
+                          XÁC NHẬN TỌA ĐỘ MỚI
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <button 
                     onClick={() => setSubmitted(false)}
-                    className="px-10 py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-all shadow-xl shadow-green-200"
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
                   >
-                    Gửi báo cáo khác
+                    XONG, TRỞ VỀ
                   </button>
                 </motion.div>
               ) : null}
@@ -220,23 +321,21 @@ export default function ReportForm() {
                   <select 
                     value={formData.type}
                     onChange={e => setFormData({...formData, type: e.target.value})}
-                    className="w-full px-5 py-4 rounded-full bg-slate-50 border border-slate-100 focus:border-green-500 outline-none appearance-none cursor-pointer"
+                    className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:border-green-500 outline-none appearance-none cursor-pointer"
                   >
                     <option value="trash">Rác sinh hoạt</option>
-                    <option value="con">Rác xây dựng</option>
-                    <option value="elec">Rác điện tử</option>
-                    <option value="other">Khác</option>
+                    <option value="khac">Rác thải khác</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Địa điểm</label>
+                  <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Vị trí tương đối</label>
                   <div className="relative">
                     <input 
                       type="text"
                       value={formData.locationName}
                       onChange={e => setFormData({...formData, locationName: e.target.value})}
                       placeholder="VD: Phường Quyết Thắng"
-                      className="w-full px-5 py-4 pl-12 rounded-full bg-slate-50 border border-slate-100 focus:border-green-500 outline-none placeholder:text-slate-300"
+                      className="w-full px-5 py-4 pl-12 rounded-2xl bg-slate-50 border border-slate-100 focus:border-green-500 outline-none placeholder:text-slate-300"
                       required
                     />
                     <MapPin className="absolute left-4 top-4 text-slate-400" size={20} />

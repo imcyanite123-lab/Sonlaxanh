@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { auth, db } from '../lib/firebase';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { auth, db, storage } from '../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { TrashReport } from '../types';
-import { User, Mail, MapPin, Clock, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { User, Mail, MapPin, Clock, AlertCircle, Image as ImageIcon, Camera, Loader2, Check } from 'lucide-react';
 
 export default function Profile() {
   const [reports, setReports] = useState<TrashReport[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -26,9 +30,29 @@ export default function Profile() {
     return () => unsubscribe();
   }, [user]);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `avatars/${user.uid}`);
+      await uploadBytes(storageRef, file);
+      const photoURL = await getDownloadURL(storageRef);
+      
+      await updateProfile(user, { photoURL });
+      window.location.reload(); // Refresh to show new avatar across app
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi khi cập nhật ảnh đại diện.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (!user) return (
     <div className="pt-32 px-6 text-center">
-      <p className="text-slate-500">Vui lòng đăng nhập để xem thông tin cá nhân.</p>
+      <p className="text-slate-500 font-medium italic">Vui lòng đăng nhập để xem thông tin cá nhân.</p>
     </div>
   );
 
@@ -37,22 +61,41 @@ export default function Profile() {
       <div className="max-w-5xl mx-auto">
         {/* Profile Header */}
         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 mb-12 flex flex-col md:flex-row items-center gap-8 border border-slate-100">
-          <div className="w-32 h-32 rounded-full bg-green-100 flex items-center justify-center text-green-600 relative overflow-hidden">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
-            ) : (
-              <User size={64} />
-            )}
+          <div className="relative group">
+            <div className={`w-32 h-32 rounded-full bg-green-50 flex items-center justify-center text-green-600 relative overflow-hidden border-4 border-white shadow-lg ${uploading ? 'opacity-50' : ''}`}>
+              {user.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
+              ) : (
+                <User size={64} />
+              )}
+            </div>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute bottom-1 right-1 w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-brand-dark transition-all cursor-pointer z-10"
+            >
+              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleAvatarChange} 
+              className="hidden" 
+              accept="image/*" 
+            />
           </div>
+          
           <div className="text-center md:text-left flex-1">
-            <h1 className="text-3xl font-black text-slate-900 mb-2">{user.displayName || 'Người dùng Sơn La Xanh'}</h1>
+            <h1 className="text-3xl font-black text-slate-900 mb-2 italic tracking-tighter">
+              {user.displayName || 'Người dùng Sơn La Xanh'}
+            </h1>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-500">
               <span className="flex items-center gap-1.5 font-medium">
-                <Mail size={16} />
+                <Mail size={16} className="text-brand-primary" />
                 {user.email}
               </span>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">
-                Tình nguyện viên
+              <span className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest">
+                Thành viên cộng đồng
               </span>
             </div>
           </div>

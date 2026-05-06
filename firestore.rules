@@ -1,14 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Global Safety Net
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helpers
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'imcyanite123@gmail.com';
     }
 
     function isOwner(userId) {
@@ -19,38 +27,50 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    // Collection Points (Official)
-    match /collection_points/{pointId} {
-      allow read: if true;
-      allow write: if isSignedIn(); // In a real app, this would be isAdmin()
-    }
-
-    // Trash Reports
+    // Reports Collection
     match /reports/{reportId} {
-      allow read: if true;
-      allow create: if isSignedIn() 
-        && incoming().reporterId == request.auth.uid
-        && incoming().status == 'pending'
-        && incoming().createdAt == request.time;
+      function isValidReport(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.description is string && data.description.size() <= 2000 &&
+               data.locationName is string && data.locationName.size() <= 500 &&
+               data.type is string && data.type.size() <= 50 &&
+               data.status in ['pending', 'verified', 'cleaned'] &&
+               data.priority in ['low', 'high'] &&
+               data.lat is number && data.lng is number &&
+               data.reporterId == request.auth.uid;
+      }
+
+      allow list: if true; // Public can see reports on map
+      allow get: if true;
+
+      allow create: if isEmailVerified() && 
+                    isValidId(reportId) && 
+                    isValidReport(request.resource.data) &&
+                    request.resource.data.createdAt == request.time;
+
       allow update: if isSignedIn() && (
-        isOwner(existing().reporterId) && incoming().reporterId == existing().reporterId
-        || incoming().diff(existing()).affectedKeys().hasOnly(['status']) // Allow status updates (e.g. verified/cleaned)
+        // Admin can update anything
+        isAdmin() ||
+        // User can update location or description before it's verified/cleaned
+        (isOwner(resource.data.reporterId) && 
+         resource.data.status == 'pending' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lat', 'lng', 'description', 'priority', 'locationName']))
       );
-      allow delete: if isOwner(existing().reporterId);
+
+      allow delete: if isAdmin();
     }
 
-    // Activities
+    // Activities Collection
     match /activities/{activityId} {
+      function isValidActivity(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.date is string && data.date.size() <= 100 &&
+               data.location is string && data.location.size() <= 500 &&
+               data.participants is number;
+      }
+
       allow read: if true;
-      allow write: if isSignedIn(); // In a real app, this would be isAdmin()
+      allow write: if isAdmin() && isValidActivity(request.resource.data);
     }
   }
 }
