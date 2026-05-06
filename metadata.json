@@ -1,0 +1,12 @@
+{
+  "name": "Sơn La Xanh",
+  "description": "Ứng dụng cộng đồng hỗ trợ bảo vệ môi trường tại Thành phố Sơn La - Dự án của học sinh THPT Chuyên Sơn La",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Firebase Firestore",
+    "Leaflet Maps",
+    "Modern UI/UX"
+  ]
+}

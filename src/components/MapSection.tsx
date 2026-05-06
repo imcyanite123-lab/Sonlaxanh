@@ -1,0 +1,110 @@
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Icon } from 'leaflet';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { CollectionPoint } from '../types';
+import { MapPin, Info, Recycle } from 'lucide-react';
+import { motion } from 'motion/react';
+
+// For leaflet icons in Vite
+const customIcon = new Icon({
+  iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+  iconSize: [38, 38]
+});
+
+const officialPoints: Partial<CollectionPoint>[] = [
+  { id: '1', name: 'Điểm thu gom Pin - Chợ Trung Tâm', address: 'P. Chiềng Lề, TP. Sơn La', type: 'Pin cũ, Điện tử', lat: 21.3290, lng: 103.9150 },
+  { id: '2', name: 'Trạm xanh - THPT Chuyên Sơn La', address: 'Số 06, đường Tô Hiệu', type: 'Nhựa, Giấy, Lon', lat: 21.3320, lng: 103.9080 },
+  { id: '3', name: 'Điểm đổi rác lấy cây - Công viên 26/10', address: 'Quảng trường Tây Bắc', type: 'Tổng hợp', lat: 21.3250, lng: 103.9180 },
+];
+
+export default function MapSection() {
+  const [points, setPoints] = useState<CollectionPoint[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'collection_points'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CollectionPoint));
+      // Combine with local mock data for demo if DB is empty
+      if (data.length === 0) {
+        setPoints(officialPoints as CollectionPoint[]);
+      } else {
+        setPoints(data);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <section id="map" className="py-20 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold font-display text-emerald-950 mb-4">Bản đồ xanh Sơn La</h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            Tìm kiếm các địa điểm thu gom rác thải tái chế, pin cũ và các "Trạm Xanh" gần bạn nhất để cùng phân loại rác tại nguồn.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {points.map((point) => (
+              <motion.div 
+                key={point.id}
+                whileHover={{ x: 5 }}
+                className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 transition-all cursor-pointer group"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white rounded-lg text-emerald-500 shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <MapPin size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-emerald-950 text-sm leading-tight mb-1">{point.name}</h4>
+                    <p className="text-xs text-slate-500 mb-2">{point.address}</p>
+                    <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase">
+                      {point.type}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+            
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-800 italic text-sm">
+              <Info className="flex-shrink-0" size={18} />
+              <p>Mẹo: Bạn có thể nhấn vào các điểm trên bản đồ để xem chi tiết hướng dẫn thu gom.</p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 relative">
+            <MapContainer 
+              center={[21.3283, 103.9142]} 
+              zoom={14} 
+              scrollWheelZoom={false}
+              className="rounded-3xl border-8 border-slate-50 shadow-2xl"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {points.map((point) => (
+                <Marker key={point.id} position={[point.lat, point.lng]} icon={customIcon}>
+                  <Popup>
+                    <div className="p-2">
+                      <h3 className="font-bold text-emerald-900 border-b border-slate-100 pb-1 mb-2">{point.name}</h3>
+                      <p className="text-xs text-slate-600 mb-1"><b>Địa chỉ:</b> {point.address}</p>
+                      <p className="text-xs text-slate-600 mb-2"><b>Loại rác:</b> {point.type}</p>
+                      <button className="w-full py-1.5 bg-emerald-500 text-white rounded text-xs font-bold hover:bg-emerald-600 transition-colors">
+                        Chỉ đường
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

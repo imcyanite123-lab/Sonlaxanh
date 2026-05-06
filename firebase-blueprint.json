@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "CollectionPoint": {
+      "title": "Collection Point",
+      "description": "A location where specific types of waste can be dropped off.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the collection point" },
+        "address": { "type": "string", "description": "Street address" },
+        "type": { "type": "string", "description": "Type of waste (e.g., batteries, plastic, paper)" },
+        "lat": { "type": "number", "description": "Latitude" },
+        "lng": { "type": "number", "description": "Longitude" },
+        "description": { "type": "string", "description": "Additional details" }
+      },
+      "required": ["name", "address", "type", "lat", "lng"]
+    },
+    "TrashReport": {
+      "title": "Trash Report",
+      "description": "A report of a trash pile or environmental issue reported by the community.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the report" },
+        "type": { "type": "string", "description": "Type of trash" },
+        "description": { "type": "string", "description": "Description of the situation" },
+        "imageUrl": { "type": "string", "description": "URL to the photo" },
+        "lat": { "type": "number", "description": "Latitude" },
+        "lng": { "type": "number", "description": "Longitude" },
+        "reporterId": { "type": "string", "description": "UID of the user who reported" },
+        "status": { "type": "string", "enum": ["pending", "verified", "cleaned"], "description": "Current status" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "lat", "lng", "reporterId", "status", "createdAt"]
+    },
+    "Activity": {
+      "title": "Environmental Activity",
+      "description": "Green activities or events organized in the community.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Name of the event" },
+        "date": { "type": "string", "format": "date", "description": "Date of the event" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "imageUrl": { "type": "string", "description": "Header image for the activity" },
+        "location": { "type": "string", "description": "Location name" }
+      },
+      "required": ["title", "date", "description", "location"]
+    }
+  },
+  "firestore": {
+    "collection_points": {
+      "schema": "CollectionPoint",
+      "description": "Official recycling points in Sơn La."
+    },
+    "reports": {
+      "schema": "TrashReport",
+      "description": "Community reports of trash locations."
+    },
+    "activities": {
+      "schema": "Activity",
+      "description": "Upcoming environmental events."
+    }
+  }
+}
