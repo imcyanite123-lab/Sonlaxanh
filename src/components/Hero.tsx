@@ -18,31 +18,31 @@ export default function Hero() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
             <ShieldCheck size={14} />
-            Dự án cộng đồng học sinh
+            Dự án học sinh
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold font-display leading-[1.1] text-emerald-950 mb-6">
+          <h1 className="text-5xl md:text-7xl font-extrabold font-display leading-[1.1] text-slate-900 mb-6 transition-all">
             Chung tay bảo vệ <br />
-            <span className="text-emerald-500">Sơn La Xanh</span>
+            <span className="text-green-600">môi trường</span>
           </h1>
           <p className="text-lg text-slate-600 mb-8 max-w-xl leading-relaxed">
-            Hành động nhỏ, ý nghĩa lớn. Chúng tôi kết nối cộng đồng để cùng nhau xây dựng một thành phố Sơn La sạch - đẹp - văn minh hơn mỗi ngày.
+            Kiến tạo Thành phố Sơn La xanh - sạch - đẹp thông qua mạng lưới cộng đồng hỗ trợ phân loại và thu gom rác thải thông minh.
           </p>
           
           <div className="flex flex-wrap gap-4">
             <a 
-              href="#map"
-              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/25 flex items-center gap-2 group"
+              href="#report"
+              className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-green-600/25 flex items-center gap-2 group hover:scale-105 active:scale-95"
             >
-              Xem bản đồ tập kết
+              Báo cáo rác ngay
               <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </a>
             <a 
-              href="#report"
-              className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl font-bold transition-all"
+              href="#map"
+              className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-green-100 rounded-2xl font-bold transition-all shadow-sm"
             >
-              Báo cáo điểm rác
+              Xem bản đồ tập kết
             </a>
           </div>
 

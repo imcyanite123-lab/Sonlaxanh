@@ -30,7 +30,7 @@ export default function AboutSection() {
   ];
 
   return (
-    <section id="about" className="py-24 px-6 bg-emerald-950 text-white overflow-hidden relative">
+    <section id="about" className="py-24 px-6 bg-green-950 text-white overflow-hidden relative">
       {/* Decorative pattern */}
       <div className="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -46,25 +46,25 @@ export default function AboutSection() {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid lg:grid-cols-2 gap-20 items-center">
           <div>
-            <span className="text-emerald-400 font-bold uppercase tracking-widest text-sm mb-4 block">Về dự án</span>
-            <h2 className="text-4xl md:text-5xl font-bold font-display mb-8 leading-tight">
+            <span className="text-green-400 font-bold uppercase tracking-widest text-xs mb-4 block">Về dự án</span>
+            <h2 className="text-4xl md:text-6xl font-extrabold font-display mb-8 leading-tight">
               Sơn La Xanh: <br />
               Dự án từ tâm huyết của <br />
-              <span className="text-emerald-400 underline decoration-emerald-500/50 underline-offset-8">Thanh thiếu niên</span>
+              <span className="text-green-400 underline decoration-green-500/50 underline-offset-8">Thanh thiếu niên</span>
             </h2>
-            <p className="text-emerald-100/70 text-lg leading-relaxed mb-10">
-              Không chỉ là một ứng dụng di động, Sơn La Xanh là một lời cam kết. Chúng mình tin rằng, mỗi cá nhân dù nhỏ bé đều có thể góp phần tạo nên sự thay đổi lớn lao cho môi trường sống xung quanh.
+            <p className="text-green-100/70 text-lg leading-relaxed mb-10 max-w-lg">
+              Không chỉ là một ứng dụng di động, Sơn La Xanh là một lời cam kết. Chúng mình tin rằng, mỗi cá nhân dù nhỏ bé đều có thể góp phần tạo nên sự thay đổi lớn lao cho môi trường sống.
             </p>
             
             <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
               <img 
                 src="https://api.dicebear.com/7.x/pixel-art/svg?seed=SonLa" 
                 alt="Logo Chuyên Sơn La" 
-                className="w-16 h-16 rounded-2xl bg-white"
+                className="w-16 h-16 rounded-2xl bg-white p-2"
               />
               <div>
-                <p className="font-bold text-white uppercase text-xs tracking-tighter">Một sáng kiến từ</p>
-                <p className="text-emerald-300 font-bold italic">Học sinh THPT Chuyên Sơn La</p>
+                <p className="font-bold text-white uppercase text-[10px] tracking-widest mb-1">Một sáng kiến từ nhóm học sinh</p>
+                <p className="text-green-400 font-extrabold text-xl italic leading-none">THPT Chuyên Sơn La</p>
               </div>
             </div>
           </div>
@@ -77,13 +77,13 @@ export default function AboutSection() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="p-8 rounded-[2rem] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 group"
+                className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 group"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${point.color}`}>
-                  <point.icon size={24} />
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${point.color}`}>
+                  <point.icon size={28} />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-3">{point.title}</h3>
-                <p className="text-sm text-emerald-100/60 leading-relaxed">{point.desc}</p>
+                <h3 className="text-xl font-bold text-white mb-3">{point.title}</h3>
+                <p className="text-sm text-green-100/60 leading-relaxed">{point.desc}</p>
               </motion.div>
             ))}
           </div>

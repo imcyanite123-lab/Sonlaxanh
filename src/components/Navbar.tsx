@@ -26,44 +26,44 @@ export default function Navbar() {
   const handleLogout = () => signOut(auth);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between glass rounded-2xl px-6 py-3">
-        <div className="flex items-center gap-2">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-green-100 shadow-sm px-6 py-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <motion.div
             initial={{ rotate: -20, scale: 0.8 }}
             animate={{ rotate: 0, scale: 1 }}
-            className="p-2 bg-emerald-500 rounded-lg text-white"
+            className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-200"
           >
             <Leaf size={24} />
           </motion.div>
-          <span className="text-xl font-bold font-display tracking-tight text-emerald-900">
-            Sơn La <span className="text-emerald-500">Xanh</span>
+          <span className="text-2xl font-bold tracking-tight text-green-900">
+            Sơn La <span className="text-green-600">Xanh</span>
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-          <a href="#map" className="hover:text-emerald-600 transition-colors">Bản đồ</a>
-          <a href="#report" className="hover:text-emerald-600 transition-colors">Báo cáo</a>
-          <a href="#activities" className="hover:text-emerald-600 transition-colors">Hoạt động</a>
-          <a href="#about" className="hover:text-emerald-600 transition-colors">Về dự án</a>
+        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-500">
+          <a href="#map" className="hover:text-green-600 transition-colors">Bản đồ</a>
+          <a href="#report" className="hover:text-green-600 transition-colors">Báo cáo</a>
+          <a href="#activities" className="hover:text-green-600 transition-colors">Hoạt động</a>
+          <a href="#about" className="hover:text-green-600 transition-colors">Về dự án</a>
         </div>
 
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+              <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
                 {user.photoURL ? (
                   <img src={user.photoURL} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
                 ) : (
-                  <UserIcon size={16} className="text-emerald-600" />
+                  <UserIcon size={16} className="text-green-600" />
                 )}
-                <span className="text-xs font-semibold text-emerald-700 hidden sm:inline">
+                <span className="text-xs font-bold text-green-700 hidden sm:inline">
                   {user.displayName?.split(' ').pop()}
                 </span>
               </div>
               <button 
                 onClick={handleLogout}
-                className="text-slate-500 hover:text-red-500 transition-colors"
+                className="text-slate-400 hover:text-red-500 transition-colors"
                 title="Đăng xuất"
               >
                 <LogOut size={20} />
@@ -72,10 +72,10 @@ export default function Navbar() {
           ) : (
             <button
               onClick={handleLogin}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl transition-all font-semibold text-sm shadow-lg shadow-emerald-500/20 active:scale-95"
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full font-bold shadow-md shadow-green-200 transition-all flex items-center gap-2 active:scale-95"
             >
               <LogIn size={18} />
-              <span>Đăng nhập</span>
+              <span>Tham gia ngay</span>
             </button>
           )}
         </div>

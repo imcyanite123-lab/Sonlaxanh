@@ -38,10 +38,10 @@ export default function MapSection() {
   }, []);
 
   return (
-    <section id="map" className="py-20 px-6 bg-white">
+    <section id="map" className="py-20 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-display text-emerald-950 mb-4">Bản đồ xanh Sơn La</h2>
+          <h2 className="text-3xl md:text-5xl font-extrabold font-display text-slate-900 mb-4 transition-all">Bản đồ xanh Sơn La</h2>
           <p className="text-slate-600 max-w-2xl mx-auto">
             Tìm kiếm các địa điểm thu gom rác thải tái chế, pin cũ và các "Trạm Xanh" gần bạn nhất để cùng phân loại rác tại nguồn.
           </p>
@@ -53,16 +53,16 @@ export default function MapSection() {
               <motion.div 
                 key={point.id}
                 whileHover={{ x: 5 }}
-                className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 transition-all cursor-pointer group"
+                className="p-5 rounded-2xl border border-green-100 bg-white hover:bg-green-50 shadow-sm hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-white rounded-lg text-emerald-500 shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                    <MapPin size={20} />
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-green-50 rounded-xl text-green-600 shadow-sm group-hover:bg-green-600 group-hover:text-white transition-colors">
+                    <MapPin size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-emerald-950 text-sm leading-tight mb-1">{point.name}</h4>
+                    <h4 className="font-bold text-slate-900 leading-tight mb-1">{point.name}</h4>
                     <p className="text-xs text-slate-500 mb-2">{point.address}</p>
-                    <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase">
+                    <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase">
                       {point.type}
                     </span>
                   </div>
@@ -70,8 +70,8 @@ export default function MapSection() {
               </motion.div>
             ))}
             
-            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-800 italic text-sm">
-              <Info className="flex-shrink-0" size={18} />
+            <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-800 italic text-sm">
+              <Info className="flex-shrink-0" size={20} />
               <p>Mẹo: Bạn có thể nhấn vào các điểm trên bản đồ để xem chi tiết hướng dẫn thu gom.</p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function MapSection() {
               center={[21.3283, 103.9142]} 
               zoom={14} 
               scrollWheelZoom={false}
-              className="rounded-3xl border-8 border-slate-50 shadow-2xl"
+              className="rounded-[2.5rem] border-8 border-white shadow-2xl relative z-0"
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -90,11 +90,11 @@ export default function MapSection() {
               {points.map((point) => (
                 <Marker key={point.id} position={[point.lat, point.lng]} icon={customIcon}>
                   <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold text-emerald-900 border-b border-slate-100 pb-1 mb-2">{point.name}</h3>
+                    <div className="p-3 min-w-[200px]">
+                      <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-1 mb-2">{point.name}</h3>
                       <p className="text-xs text-slate-600 mb-1"><b>Địa chỉ:</b> {point.address}</p>
-                      <p className="text-xs text-slate-600 mb-2"><b>Loại rác:</b> {point.type}</p>
-                      <button className="w-full py-1.5 bg-emerald-500 text-white rounded text-xs font-bold hover:bg-emerald-600 transition-colors">
+                      <p className="text-xs text-slate-600 mb-3"><b>Loại rác:</b> {point.type}</p>
+                      <button className="w-full py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-200">
                         Chỉ đường
                       </button>
                     </div>
