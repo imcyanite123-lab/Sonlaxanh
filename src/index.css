@@ -5,10 +5,11 @@
   --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Be Vietnam Pro", sans-serif;
 
-  --color-brand-light: #f0fdf4; /* green-50 */
-  --color-brand-mint: #dcfce7; /* green-100 */
-  --color-brand-primary: #16a34a; /* green-600 */
-  --color-brand-dark: #064e3b; /* green-950 */
+  --color-brand-light: #f0fdf4;
+  --color-brand-mint: #dcfce7;
+  --color-brand-primary: #66BB6A; /* Updated to match logo light green */
+  --color-brand-dark: #1B4332; /* Updated to match logo dark green */
+  --color-brand-accent: #81D4FA; /* New brand accent color from logo */
   
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;

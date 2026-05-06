@@ -11,9 +11,12 @@ import ActivitySection from './components/ActivitySection';
 import Statistics from './components/Statistics';
 import AboutSection from './components/AboutSection';
 import Footer from './components/Footer';
+import Profile from './components/Profile';
 import { motion, useScroll, useSpring } from 'motion/react';
+import { useState } from 'react';
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -29,15 +32,21 @@ export default function App() {
         style={{ scaleX }}
       />
       
-      <Navbar />
+      <Navbar onNavigate={setCurrentView} currentView={currentView} />
       
       <main>
-        <Hero />
-        <Statistics />
-        <MapSection />
-        <ReportForm />
-        <ActivitySection />
-        <AboutSection />
+        {currentView === 'home' ? (
+          <>
+            <Hero />
+            <Statistics />
+            <MapSection />
+            <ReportForm />
+            <ActivitySection />
+            <AboutSection />
+          </>
+        ) : (
+          <Profile />
+        )}
       </main>
 
       <Footer />

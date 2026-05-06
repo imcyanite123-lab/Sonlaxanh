@@ -1,14 +1,40 @@
 import { motion } from 'motion/react';
 import { MapPin, Users, Leaf, Trash2 } from 'lucide-react';
-
-const stats = [
-  { label: 'Điểm thu gom', value: '24', icon: MapPin, color: 'text-green-600', bg: 'bg-white', border: 'border-green-100' },
-  { label: 'Hoạt động', value: '15', icon: Leaf, color: 'text-white', bg: 'bg-green-600', border: 'border-transparent', isDark: true },
-  { label: 'Tình nguyện viên', value: '320', icon: Users, color: 'text-green-600', bg: 'bg-white', border: 'border-green-100' },
-  { label: 'Rác tái chế', value: '1.2T', icon: Trash2, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-];
+import { useEffect, useState } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function Statistics() {
+  const [counts, setCounts] = useState({
+    points: 0,
+    activities: 0,
+    volunteers: 0,
+    reports: 0
+  });
+
+  useEffect(() => {
+    const unsubPoints = onSnapshot(collection(db, 'collection_points'), s => setCounts(prev => ({ ...prev, points: s.size })));
+    const unsubActs = onSnapshot(collection(db, 'activities'), s => setCounts(prev => ({ ...prev, activities: s.size })));
+    const unsubReports = onSnapshot(collection(db, 'reports'), s => setCounts(prev => ({ ...prev, reports: s.size })));
+    
+    // For volunteers, we could count users if we had a users collection, 
+    // or just use a placeholder that starts at 1 (the founder)
+    setCounts(prev => ({ ...prev, volunteers: 1 }));
+
+    return () => {
+      unsubPoints();
+      unsubActs();
+      unsubReports();
+    };
+  }, []);
+
+  const stats = [
+    { label: 'Điểm thu gom', value: counts.points.toString(), icon: MapPin, color: 'text-green-600', bg: 'bg-white', border: 'border-green-100' },
+    { label: 'Hoạt động', value: counts.activities.toString(), icon: Leaf, color: 'text-white', bg: 'bg-green-600', border: 'border-transparent', isDark: true },
+    { label: 'Tình nguyện viên', value: counts.volunteers.toString(), icon: Users, color: 'text-green-600', bg: 'bg-white', border: 'border-green-100' },
+    { label: 'Điểm rác báo cáo', value: counts.reports.toString(), icon: Trash2, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+  ];
+
   return (
     <section className="py-20 px-6">
       <div className="max-w-7xl mx-auto">

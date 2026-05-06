@@ -14,9 +14,12 @@ export interface TrashReport {
   type: string;
   description: string;
   imageUrl?: string;
+  priority?: 'low' | 'high';
   lat: number;
   lng: number;
   reporterId: string;
+  reporterName?: string;
+  locationName?: string;
   status: 'pending' | 'verified' | 'cleaned';
   createdAt: number;
 }

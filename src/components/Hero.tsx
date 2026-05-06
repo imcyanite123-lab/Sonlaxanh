@@ -6,10 +6,10 @@ export default function Hero() {
     <section className="relative pt-32 pb-20 px-6 overflow-hidden">
       {/* Background blobs */}
       <div className="absolute top-0 right-0 -z-10 opacity-20 blur-3xl">
-        <div className="w-[500px] h-[500px] bg-emerald-300 rounded-full mix-blend-multiply" />
+        <div className="w-[500px] h-[500px] bg-brand-primary rounded-full mix-blend-multiply" />
       </div>
       <div className="absolute bottom-0 left-0 -z-10 opacity-20 blur-3xl">
-        <div className="w-[400px] h-[400px] bg-sky-300 rounded-full mix-blend-multiply" />
+        <div className="w-[400px] h-[400px] bg-brand-accent rounded-full mix-blend-multiply" />
       </div>
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
@@ -22,9 +22,9 @@ export default function Hero() {
             <ShieldCheck size={14} />
             Dự án học sinh
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold font-display leading-[1.1] text-slate-900 mb-6 transition-all">
+          <h1 className="text-5xl md:text-7xl font-extrabold font-display leading-[1.1] text-brand-dark mb-6 transition-all">
             Chung tay bảo vệ <br />
-            <span className="text-green-600">môi trường</span>
+            <span className="text-brand-primary">môi trường</span>
           </h1>
           <p className="text-lg text-slate-600 mb-8 max-w-xl leading-relaxed">
             Kiến tạo Thành phố Sơn La xanh - sạch - đẹp thông qua mạng lưới cộng đồng hỗ trợ phân loại và thu gom rác thải thông minh.

@@ -1,10 +1,16 @@
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { Leaf, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { motion } from 'motion/react';
+import Logo from './Logo';
 
-export default function Navbar() {
+interface NavbarProps {
+  onNavigate: (view: 'home' | 'profile') => void;
+  currentView: string;
+}
+
+export default function Navbar({ onNavigate, currentView }: NavbarProps) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -23,44 +29,57 @@ export default function Navbar() {
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => {
+    signOut(auth);
+    onNavigate('home');
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-green-100 shadow-sm px-6 py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-green-100 shadow-sm px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <motion.div
-            initial={{ rotate: -20, scale: 0.8 }}
-            animate={{ rotate: 0, scale: 1 }}
-            className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-200"
-          >
-            <Leaf size={24} />
-          </motion.div>
-          <span className="text-2xl font-bold tracking-tight text-green-900">
-            Sơn La <span className="text-green-600">Xanh</span>
-          </span>
+        <div 
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => onNavigate('home')}
+        >
+          <Logo size={42} />
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-500">
-          <a href="#map" className="hover:text-green-600 transition-colors">Bản đồ</a>
-          <a href="#report" className="hover:text-green-600 transition-colors">Báo cáo</a>
-          <a href="#activities" className="hover:text-green-600 transition-colors">Hoạt động</a>
-          <a href="#about" className="hover:text-green-600 transition-colors">Về dự án</a>
+          {currentView === 'home' ? (
+            <>
+              <a href="#map" className="hover:text-green-600 transition-colors">Bản đồ</a>
+              <a href="#report" className="hover:text-green-600 transition-colors">Báo cáo</a>
+              <a href="#activities" className="hover:text-green-600 transition-colors">Hoạt động</a>
+              <a href="#about" className="hover:text-green-600 transition-colors">Về dự án</a>
+            </>
+          ) : (
+            <button 
+              onClick={() => onNavigate('home')}
+              className="hover:text-green-600 transition-colors"
+            >
+              Về Trang chủ
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+              <button 
+                onClick={() => onNavigate('profile')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                  currentView === 'profile' ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 text-green-700 border-green-100 hover:bg-green-100'
+                }`}
+              >
                 {user.photoURL ? (
                   <img src={user.photoURL} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
                 ) : (
-                  <UserIcon size={16} className="text-green-600" />
+                  <UserIcon size={16} />
                 )}
-                <span className="text-xs font-bold text-green-700 hidden sm:inline">
+                <span className="text-xs font-bold hidden sm:inline">
                   {user.displayName?.split(' ').pop()}
                 </span>
-              </div>
+              </button>
               <button 
                 onClick={handleLogout}
                 className="text-slate-400 hover:text-red-500 transition-colors"
