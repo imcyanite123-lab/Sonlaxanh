@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { db, auth, storage } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { GoogleGenAI, Type } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import { Camera, Send, MapPin, AlertCircle, CheckCircle2, Image as ImageIcon, Loader2, Sparkles, Navigation, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -55,25 +55,36 @@ export default function ReportForm() {
 
   const analyzeDescription = async (description: string) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Analyze this trash report description and determine if it involves hazardous waste (chemicals, medical waste, batteries, sharp objects, explosives, toxins). 
-        Return "high" if hazardous, otherwise "low".
-        Description: ${description}`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              priority: { type: Type.STRING }
-            }
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        console.warn("Anthropic API key is missing. Skipping analysis.");
+        return 'low';
+      }
+
+      const anthropic = new Anthropic({
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true // Necessary for client-side demo, though server-side is better
+      });
+
+      const message = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 100,
+        messages: [
+          {
+            role: "user",
+            content: `Analyze this trash report description and determine if it involves hazardous waste (chemicals, medical waste, batteries, sharp objects, explosives, toxins).
+            Return ONLY a JSON object like {"priority": "high"} if it is hazardous, or {"priority": "low"} if it is not. Do not include any other text.
+            Description: ${description}`
           }
-        }
+        ]
       });
       
-      const result = JSON.parse(response.text);
-      return result.priority === 'high' ? 'high' : 'low';
+      const content = message.content[0];
+      if (content.type === 'text') {
+        const result = JSON.parse(content.text);
+        return result.priority === 'high' ? 'high' : 'low';
+      }
+      return 'low';
     } catch (err) {
       console.error("AI Analysis failed:", err);
       return 'low';
